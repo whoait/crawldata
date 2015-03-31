@@ -5,6 +5,7 @@ from scrapy import Selector
 from scrapy.http.request import Request
 from scrapy.http import TextResponse
 from thebesttimetovisit.items import TheBestTimeToVisitItem
+from thebesttimetovisit.pipelines import TheBestTimeToVisitPipeline
 from crawl.models import City, CityWeatherMonth
 
 def month_to_num(month):
@@ -99,22 +100,25 @@ class TheBestTimeToVisitSpider(Spider):
         city = City.objects.get(id=293916)
         for post in posts:
             rows = post.xpath('td/text()').extract()
-            item = TheBestTimeToVisitItem()
+            item = CityWeatherMonth()
             month = rows[0]
-            item['city'] = city
-            item['month'] = month_to_num(month)
-            item['sunlight'] = rows[1]
-            item['average_min'] = rows[2]
-            item['average_max'] = rows[3]
-            item['record_min'] = rows[4]
-            item['record_max'] = rows[5]
-            item['precipitations'] = rows[6]
-            item['wet_days'] = rows[7]
-            # try:
-            #     item.full_clean()
-            # except Exception as e:
-            #     errors.append('City %s . Month: %s' % (city, month))
+            item.city = city
+            item.month = month_to_num(month)
+            item.sunlight = rows[1]
+            item.average_min = rows[2]
+            item.average_max = rows[3]
+            item.record_min = rows[4]
+            item.record_max = rows[5]
+            item.precipitations = rows[6]
+            item.wet_days = rows[7]
+            try:
+                item.full_clean()
+            except Exception as e:
+                print e
+                errors.append('City %s . Month: %s' % (city, month))
+            else:
+                item.save()
 
-        # self._print('Errors (%s): ' % len(errors))
-        # for error in errors:
-        #     self._print('- %s' % error)
+        self._print('Errors (%s): ' % len(errors))
+        for error in errors:
+            self._print('- %s' % error)

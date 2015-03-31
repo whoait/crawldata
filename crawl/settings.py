@@ -46,6 +46,7 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'crawl',
+    'thebesttimetovisit',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -119,3 +120,5 @@ SUIT_CONFIG = {
          {'label': 'Support', 'icon':'icon-question-sign', 'url': 'mailto:tung@fiuzu.com'},
     ),
 }
+
+os.environ['SCRAPY_SETTINGS_MODULE'] = 'thebesttimetovisit.settings'

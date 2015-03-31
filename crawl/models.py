@@ -96,8 +96,8 @@ class CityWeatherMonth(BaseModel):
     record_max          = models.PositiveSmallIntegerField(help_text="C")
     precipitations      = models.PositiveSmallIntegerField(help_text="mm")
     wet_days            = models.PositiveSmallIntegerField(validators=[MaxValueValidator(31),MinValueValidator(0)], default=0)
-    sunrise_average     = models.PositiveSmallIntegerField()
-    sunset_average      = models.PositiveSmallIntegerField()
+    sunrise_average     = models.PositiveSmallIntegerField(null=True, blank=True)
+    sunset_average      = models.PositiveSmallIntegerField(null=True, blank=True)
     detail              = JSONField(null=True, blank=True)
 
     # def save(self, *args, **kwargs):

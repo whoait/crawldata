@@ -14,8 +14,9 @@ BOT_NAME = 'thebesttimetovisit'
 #
 SPIDER_MODULES = ['thebesttimetovisit.spiders']
 NEWSPIDER_MODULE = 'thebesttimetovisit.spiders'
+
 ITEM_PIPELINES = {
-    'thebesttimetovisit.pipelines.TheBestTimeToVisitPipeline': 1
+    'thebesttimetovisit.pipelines.TheBestTimeToVisitPipeline': 300
 }
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent

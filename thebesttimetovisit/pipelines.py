@@ -5,6 +5,7 @@
 
 from crawl.models import CityWeatherMonth
 from scrapy.exceptions import DropItem
+from items import TheBestTimeToVisitItem
 
 class TheBestTimeToVisitPipeline(object):
 
