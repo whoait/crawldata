@@ -109,12 +109,12 @@ SUIT_CONFIG = {
     'MENU': (
          'sites',
          {'app': 'auth', 'icon':'icon-lock', 'models': ('group'), 'label': 'Authentication'},
-         {'app': 'crawl',
-            'icon':'icon-user',
-            'models': (
-                'dbconfig',
-            ),
-            'label': 'DB Config'},
+         # {'app': 'crawl',
+         #    'icon':'icon-user',
+         #    'models': (
+         #        'dbconfig',
+         #    ),
+         #    'label': 'DB Config'},
         '-',
          {'label': 'Tools', 'url': '/%s/tools/home/' % ADMIN_PATH, 'icon':'icon-wrench'},
          {'label': 'Support', 'icon':'icon-question-sign', 'url': 'mailto:tung@fiuzu.com'},

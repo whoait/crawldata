@@ -100,11 +100,6 @@ class CityWeatherMonth(BaseModel):
     sunset_average      = models.PositiveSmallIntegerField(null=True, blank=True)
     detail              = JSONField(null=True, blank=True)
 
-    # def save(self, *args, **kwargs):
-    #     print 'savevevasdsfsdfdsgsd gdfgd fhsdgh fg hfghfj'
-    #
-    #     return super(CityWeatherMonth,self).save(*args, **kwargs)
-
     class Meta:
         unique_together = (
             ("city", "month"),

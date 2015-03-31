@@ -114,7 +114,6 @@ class TheBestTimeToVisitSpider(Spider):
             try:
                 item.full_clean()
             except Exception as e:
-                print e
                 errors.append('City %s . Month: %s' % (city, month))
             else:
                 item.save()
