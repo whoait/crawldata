@@ -1,12 +1,7 @@
-import urllib
 import logging
 from scrapy.spider import Spider
 from scrapy import Selector
-from scrapy.http.request import Request
-from scrapy.http import TextResponse
-from thebesttimetovisit.items import TheBestTimeToVisitItem
-from thebesttimetovisit.pipelines import TheBestTimeToVisitPipeline
-from crawl.models import City, CityWeatherMonth, CrawlDetail
+from crawl.models import City, Country, CityWeatherMonth, CrawlDetail
 
 def month_to_num(month):
 
@@ -48,27 +43,17 @@ class TheBestTimeToVisitSpider(Spider):
             self.start_urls = [url]
         else:
             # If there is no specific URL get it from Database
-            wikiliks = None # < -- CODE TO RETRIEVE THE LINKS FROM DB -->
-            wikiliks = CrawlDetail.objects.all(data_type_name=CrawlDetail.MONTH_WEATHER_INFO).values_list('source_url')
-            print wikiliks
-            return
-            # if wikiliks == None:
-            #     wikiliks = [
-            #         "http://www.thebesttimetovisit.com/weather/bangkok-idvilleeng-93.html"
-            #     ]
-            #     # print "**************************************"
-            #     # print "No Links to Query"
-            #     # print "**************************************"
-            #     # return None
-            #
-            # # print 'dasdasdas'
-            # # print wikiliks
-            # for link in wikiliks:
-            #     # print link
-            #     # print urllib.unquote_plus(link)
-            #     # print "===="
-            #     # SOME PROCESSING ON THE LINK GOES HERE
-            #     self.start_urls.append(urllib.unquote_plus(link))
+            # wikiliks = None # < -- CODE TO RETRIEVE THE LINKS FROM DB -->
+            wikiliks = CrawlDetail.objects.filter(data_type_name=CrawlDetail.MONTH_WEATHER_INFO)
+            if wikiliks == None:
+                print "**************************************"
+                print "No Links to Query"
+                print "**************************************"
+                return None
+
+            for link in wikiliks:
+                # SOME PROCESSING ON THE LINK GOES HERE
+                self.start_urls.append(link.source_url)
 
     def init_logger(self):
         log_file = '/var/tmp/cron_foursquare.log'
@@ -100,12 +85,23 @@ class TheBestTimeToVisitSpider(Spider):
             del posts[0]
 
         # TODO: find a way to know which city that we're crawling data, now 293916 is Bangkok in main_city
-        city = City.objects.get(id=293916)
+        object_details = CrawlDetail.objects.filter(source_url=response.url)
+        for obj in object_details:
+            if obj.content_type.model == 'city':
+                cls = City
+            if obj.content_type.model == 'Country':
+                cls = Country
+            object_id = obj.object_id
+
+        object = cls.objects.get(id=object_id)
+
+        self._print('Staring crawl from (%s) ....: ' % response.url)
+
         for post in posts:
             rows = post.xpath('td/text()').extract()
             item = CityWeatherMonth()
             month = rows[0]
-            item.city = city
+            item.city = object
             item.month = month_to_num(month)
             item.sunlight = rows[1]
             item.average_min = rows[2]
@@ -117,10 +113,12 @@ class TheBestTimeToVisitSpider(Spider):
             try:
                 item.full_clean()
             except Exception as e:
-                errors.append('City %s . Month: %s' % (city, month))
+                errors.append('Errors message : %s . [%s %s . Month: %s]' % (str(e), cls, object, month))
             else:
                 item.save()
-
-        self._print('Errors (%s): ' % len(errors))
-        for error in errors:
-            self._print('- %s' % error)
+        if len(errors) == 0:
+            self._print('Crawling sucessful %s' % len(posts))
+        else:
+            self._print('Errors (%s): ' % len(errors))
+            for error in errors:
+                self._print('- %s' % error)

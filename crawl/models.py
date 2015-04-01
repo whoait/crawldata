@@ -116,6 +116,7 @@ class CrawlDetail(BaseModel):
         (MONTH_ALMANAC_INFO,     _("Month almanac info")),
 
     )
+
     content_type    = models.ForeignKey(ContentType, on_delete=models.PROTECT, db_index=False, related_name="+")
     object_id       = models.CharField(max_length=10)
     data_type_name  = models.PositiveSmallIntegerField(choices=CRAWL_CHOICES, default=MONTH_WEATHER_INFO)
