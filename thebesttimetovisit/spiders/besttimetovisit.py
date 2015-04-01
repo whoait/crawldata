@@ -6,7 +6,7 @@ from scrapy.http.request import Request
 from scrapy.http import TextResponse
 from thebesttimetovisit.items import TheBestTimeToVisitItem
 from thebesttimetovisit.pipelines import TheBestTimeToVisitPipeline
-from crawl.models import City, CityWeatherMonth
+from crawl.models import City, CityWeatherMonth, CrawlDetail
 
 def month_to_num(month):
 
@@ -49,23 +49,26 @@ class TheBestTimeToVisitSpider(Spider):
         else:
             # If there is no specific URL get it from Database
             wikiliks = None # < -- CODE TO RETRIEVE THE LINKS FROM DB -->
-            if wikiliks == None:
-                wikiliks = [
-                    "http://www.thebesttimetovisit.com/weather/bangkok-idvilleeng-93.html"
-                ]
-                # print "**************************************"
-                # print "No Links to Query"
-                # print "**************************************"
-                # return None
-
-            # print 'dasdasdas'
-            # print wikiliks
-            for link in wikiliks:
-                # print link
-                # print urllib.unquote_plus(link)
-                # print "===="
-                # SOME PROCESSING ON THE LINK GOES HERE
-                self.start_urls.append(urllib.unquote_plus(link))
+            wikiliks = CrawlDetail.objects.all(data_type_name=CrawlDetail.MONTH_WEATHER_INFO).values_list('source_url')
+            print wikiliks
+            return
+            # if wikiliks == None:
+            #     wikiliks = [
+            #         "http://www.thebesttimetovisit.com/weather/bangkok-idvilleeng-93.html"
+            #     ]
+            #     # print "**************************************"
+            #     # print "No Links to Query"
+            #     # print "**************************************"
+            #     # return None
+            #
+            # # print 'dasdasdas'
+            # # print wikiliks
+            # for link in wikiliks:
+            #     # print link
+            #     # print urllib.unquote_plus(link)
+            #     # print "===="
+            #     # SOME PROCESSING ON THE LINK GOES HERE
+            #     self.start_urls.append(urllib.unquote_plus(link))
 
     def init_logger(self):
         log_file = '/var/tmp/cron_foursquare.log'

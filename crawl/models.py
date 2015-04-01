@@ -89,12 +89,12 @@ class CityWeatherMonth(BaseModel):
 
     city                = models.ForeignKey("crawl.City", on_delete=models.PROTECT, db_index=False, related_name="+")
     month               = models.PositiveSmallIntegerField(choices=MONTH_CHOICES, validators=[MaxValueValidator(12),MinValueValidator(1)], default=1)
-    sunlight            = models.PositiveSmallIntegerField(help_text="h/d")
-    average_min         = models.PositiveSmallIntegerField(help_text="C")
-    average_max         = models.PositiveSmallIntegerField(help_text="C")
-    record_min          = models.PositiveSmallIntegerField(help_text="C")
-    record_max          = models.PositiveSmallIntegerField(help_text="C")
-    precipitations      = models.PositiveSmallIntegerField(help_text="mm")
+    sunlight            = models.PositiveSmallIntegerField(help_text="h/d", verbose_name="Sunlight (h/d)")
+    average_min         = models.PositiveSmallIntegerField(help_text="*C", verbose_name="Average T min (*C)")
+    average_max         = models.PositiveSmallIntegerField(help_text="*C", verbose_name="Average T max (*C)")
+    record_min          = models.PositiveSmallIntegerField(help_text="*C", verbose_name="Record T min (*C)")
+    record_max          = models.PositiveSmallIntegerField(help_text="*C", verbose_name="Record T max (*C)")
+    precipitations      = models.PositiveSmallIntegerField(help_text="mm", verbose_name="Precipitations (mm)")
     wet_days            = models.PositiveSmallIntegerField(validators=[MaxValueValidator(31),MinValueValidator(0)], default=0)
     sunrise_average     = models.PositiveSmallIntegerField(null=True, blank=True)
     sunset_average      = models.PositiveSmallIntegerField(null=True, blank=True)
@@ -106,11 +106,19 @@ class CityWeatherMonth(BaseModel):
         )
 
 
-class CrawlDetails(BaseModel):
+class CrawlDetail(BaseModel):
 
-    content_type    = models.ForeignKey(ContentType, on_delete=models.PROTECT, db_index=False, related_name="+", editable=False)
-    object_id       = models.PositiveIntegerField(editable=False)
-    data_type_name  = TrimmedCharField(max_length=50)
+    MONTH_WEATHER_INFO = 0
+    MONTH_ALMANAC_INFO = 1
+
+    CRAWL_CHOICES = (
+        (MONTH_WEATHER_INFO,     _("Month weather info")),
+        (MONTH_ALMANAC_INFO,     _("Month almanac info")),
+
+    )
+    content_type    = models.ForeignKey(ContentType, on_delete=models.PROTECT, db_index=False, related_name="+")
+    object_id       = models.CharField(max_length=10)
+    data_type_name  = models.PositiveSmallIntegerField(choices=CRAWL_CHOICES, default=MONTH_WEATHER_INFO)
     source_url      = models.URLField(blank=True)
     content_object  = generic.GenericForeignKey('content_type', 'object_id')
 
