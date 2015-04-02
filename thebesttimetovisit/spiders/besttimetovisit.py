@@ -1,4 +1,5 @@
 import logging
+import urlparse
 from scrapy.spider import Spider
 from scrapy import Selector
 from crawl.models import City, Country, CityWeatherMonth, CrawlDetail
@@ -53,7 +54,13 @@ class TheBestTimeToVisitSpider(Spider):
 
             for link in wikiliks:
                 # SOME PROCESSING ON THE LINK GOES HERE
-                self.start_urls.append(link.source_url)
+                content_type = link.content_type
+                object_id = link.object_id
+                url = link.source_url
+                url += '?content_type=%s&object_id=%s' % (content_type, object_id)
+                # print url
+                self.start_urls.append(url)
+                # self.start_urls.append(link.source_url)
 
     def init_logger(self):
         log_file = '/var/tmp/cron_foursquare.log'
@@ -85,24 +92,34 @@ class TheBestTimeToVisitSpider(Spider):
             del posts[0]
 
         # TODO: find a way to know which city that we're crawling data, now 293916 is Bangkok in main_city
-        object_details = CrawlDetail.objects.filter(source_url=response.url)
-        for obj in object_details:
-            if obj.content_type.model == 'city':
-                cls = City
-            if obj.content_type.model == 'Country':
-                cls = Country
-            object_id = obj.object_id
+        par = urlparse.parse_qs(urlparse.urlparse(response.url).query)
+        object_id       = par['object_id'][0]
+        content_type    = par['content_type'][0]
 
+        if content_type == 'city':
+            cls = City
+        if content_type == 'country':
+            cls = Country
         object = cls.objects.get(id=object_id)
 
         self._print('Staring crawl from (%s) ....: ' % response.url)
 
         for post in posts:
             rows = post.xpath('td/text()').extract()
-            item = CityWeatherMonth()
-            month = rows[0]
-            item.city = object
-            item.month = month_to_num(month)
+            month = month_to_num(rows[0])
+
+            try:
+                weather = CityWeatherMonth.objects.get(city=object, month=month)
+            except CityWeatherMonth.DoesNotExist:
+                weather = None
+
+            if weather:
+                item = weather
+            else:
+                item = CityWeatherMonth()
+                item.city = object
+                item.month = month
+
             item.sunlight = rows[1]
             item.average_min = rows[2]
             item.average_max = rows[3]
@@ -113,9 +130,11 @@ class TheBestTimeToVisitSpider(Spider):
             try:
                 item.full_clean()
             except Exception as e:
-                errors.append('Errors message : %s . [%s %s . Month: %s]' % (str(e), cls, object, month))
+                errors.append('Errors message : %s . [%s %s . Month: %s]' % (str(e), content_type, object, month))
             else:
                 item.save()
+                self._print('Added %s : %s' % (item.city, item.month))
+
         if len(errors) == 0:
             self._print('Crawling sucessful %s' % len(posts))
         else:
