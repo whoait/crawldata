@@ -1,4 +1,5 @@
 Django==1.6
+django-starter-box==0.1.1
 BeautifulSoup==3.2.1
 celery==3.1.13
 celerymon==1.0.3
