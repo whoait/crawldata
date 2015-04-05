@@ -131,6 +131,7 @@ class VisaCountry(BaseModel):
 
     name            = TrimmedCharField(max_length=50)
     slug            = TrimmedCharField(max_length=50, unique=True, editable=False)
+    code            = FixedCharField(max_length=5)
     stop_at         = models.CharField(max_length=10, default=0)
     is_running      = models.BooleanField(default=False)
     total_completed = models.IntegerField(default=0)
@@ -175,17 +176,22 @@ class VisaCountry(BaseModel):
 
         return ins
 
+    class Meta:
+        unique_together = (
+            ("name", "slug", "code")
+        )
+
     def __unicode__(self):
         return self.name
 
 class VisaInformation(BaseModel):
 
-    from_country             = models.ForeignKey(VisaCountry, on_delete=models.PROTECT, db_index=False, related_name="+")
-    to_country               = models.ForeignKey(VisaCountry, on_delete=models.PROTECT, db_index=False, related_name="visa_free")
+    from_country        = models.ForeignKey(VisaCountry, on_delete=models.PROTECT, db_index=False, related_name="+")
+    to_country          = models.ForeignKey(VisaCountry, on_delete=models.PROTECT, db_index=False, related_name="visa_free")
     tourist_visa        = models.BooleanField(default=False)
     business_visa       = models.BooleanField(default=False)
-    details_tourist     = HTMLField()
-    details_business    = HTMLField()
+    details_tourist     = HTMLField(null=True, blank=True)
+    details_business    = HTMLField(null=True, blank=True)
 
     class Meta:
         unique_together = (

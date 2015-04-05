@@ -121,4 +121,65 @@ SUIT_CONFIG = {
     ),
 }
 
+PROFILE_LOG_BASE =  os.path.join(PROJ_PARENT_PATH, 'logs')
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '[%(asctime)s] [%(levelname)s] %(process)d %(thread)d %(module)s %(message)s'
+        },
+        'simple': {
+            'format': '[%(asctime)s] [%(levelname)s] %(message)s'
+        },
+    },
+    'filters': {
+        'require_debug_false': {
+            '()': 'django.utils.log.RequireDebugFalse',
+        },
+    },
+    'handlers': {
+        'null': {
+            # Note: The level doesn't matter since it goes into a blackhole.
+            'level': 'ERROR',
+            'class': 'logging.NullHandler',
+        },
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+        'file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': PROFILE_LOG_BASE + "/visahq.log",
+            'formatter': 'simple',
+        },
+    },
+    'loggers': {
+        # for manually triggered commands
+        'commands': {
+            'level': 'INFO',
+            'handlers': ['file'],
+            'propagate': True,
+        }
+    }
+}
+####DOGSLOW LOGGING #########
+# Watchdog is enabled by default, to temporarily disable, set to False:
+DOGSLOW = True
+
+# By default, Watchdog will create log files with the backtraces.
+# You can also set the location of where it stores them:
+DOGSLOW_LOG_TO_FILE = True
+DOGSLOW_OUTPUT = '/tmp'
+
+# Log requests taking longer than 25 seconds:
+DOGSLOW_TIMER = 35
+
+# Print (potentially huge!) local stack variables (off by default, use
+# True for more detailed, but less manageable reports)
+DOGSLOW_STACK_VARS = True
+####END DOGSLOW #############
+
 os.environ['SCRAPY_SETTINGS_MODULE'] = 'thebesttimetovisit.settings'

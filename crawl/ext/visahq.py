@@ -3,11 +3,10 @@ import urllib2
 import httplib
 from urllib2 import HTTPError
 import logging
-
+import json
 from BeautifulSoup import BeautifulSoup as Soup
 
-_logger = logging.getLogger('crawling')
-
+_logger = logging.getLogger('commands')
 
 class RoundRobinProxySelector:
     index = 0
@@ -92,13 +91,16 @@ class VisaHq:
                 html = None
         except urllib2.URLError as e1:
             print e1.__dict__
+            _logger.info(e1.__dict__)
         except httplib.BadStatusLine as e:
             print e.__dict__
+            _logger.info(e.__dict__)
         else:
             try:
                 html = response.read()
             except httplib.IncompleteRead, e:
                 html = e.partial
+
             status = response.code
 
         print 'REQUEST', url, headers, status
@@ -109,38 +111,53 @@ class VisaHq:
         if html:
             soup = Soup(html)
 
-            els_name = soup.find('select', attrs={'id': re.compile(r'.*\bctz\b.*')})
-            option_list = els_name.findAllNext('option')
+            # els_name = soup.find('select', attrs={'id': re.compile(r'.*\bctz\b.*')})
+            els_name = soup.find('select', attrs={'id': 'visahq_html5widget_nationality_country'})
+            # option_list = els_name.findAllNext('option')
 
-            return option_list
+            return els_name
         return None
 
     @classmethod
     def parse_visa_information_html(cls, html, business_html):
         if html and business_html:
-            soup = Soup(html)
-            business_soup = Soup(business_html)
-
-            els_tourist_name = soup.find('dl', attrs={'id': re.compile(r'.*\bvisa_group_1\b.*')})
-            els_business_name = soup.find('dl', attrs={'id': re.compile(r'.*\bvisa_group_2\b.*')})
-            els_tourist_visa_info = soup.find('div', attrs={'class': re.compile(r'.*\bvisa_info_data\b.*')})
-            els_business_visa_info = business_soup.find('div', attrs={'class': re.compile(r'.*\bvisa_info_data\b.*')})
-
-            if 'not required' in els_tourist_name['class']:
+            if re.search('"require":"false"', html):
                 tourist_required = False
             else:
                 tourist_required = True
 
-            if 'not required' in els_business_name['class']:
+            if re.search('"require":"false"', business_html):
                 business_required = False
             else:
                 business_required = True
+            # if '"require":"false"' in html:
+            #     print 'false'
+            # elif '"require":"true"' in html:
+            #     print 'true'
+
+            # soup = Soup(html)
+            # business_soup = Soup(business_html)
+            #
+            # els_tourist_name = soup.find('dl', attrs={'id': re.compile(r'.*\bvisa_group_1\b.*')})
+            # els_business_name = soup.find('dl', attrs={'id': re.compile(r'.*\bvisa_group_2\b.*')})
+            # els_tourist_visa_info = soup.find('div', attrs={'class': re.compile(r'.*\bvisa_info_data\b.*')})
+            # els_business_visa_info = business_soup.find('div', attrs={'class': re.compile(r'.*\bvisa_info_data\b.*')})
+            #
+            # if 'not required' in els_tourist_name['class']:
+            #     tourist_required = False
+            # else:
+            #     tourist_required = True
+            #
+            # if 'not required' in els_business_name['class']:
+            #     business_required = False
+            # else:
+            #     business_required = True
 
             return {
                 'tourist_visa'      : tourist_required,
                 'business_visa'     : business_required,
-                'details_tourist'   : str(els_tourist_visa_info),
-                'details_business'  : str(els_business_visa_info),
+                # 'details_tourist'   : str(els_tourist_visa_info),
+                # 'details_business'  : str(els_business_visa_info),
             }
 
         return None

@@ -1,25 +1,26 @@
 import logging
+import unidecode
+import re
 from django.core.management.base import BaseCommand
 from django.db.models import F
 from crawl.models import (
     VisaCountry, VisaInformation
 )
+
 from crawl.ext.visahq import VisaHq
 from celery import task
 
-_logger = logging.getLogger('crawling')
+_SLUGIFY_RE = re.compile(r'\W+', re.I)
+_logger = logging.getLogger('commands')
 
 class Command(BaseCommand):
-    using_log = True
-    logger = None
 
     def handle(self, *args, **kwargs):
         total_country = VisaCountry.objects.all().count()
+
         if total_country == 0:
             self.fetch_country()
             total_country = VisaCountry.objects.all().count()
-
-        self.init_logger()
 
         is_loop_2nd = False
         while True:
@@ -48,9 +49,9 @@ class Command(BaseCommand):
                         continue
 
                     if delay:
-                        _send_in_queue.delay(from_country.slug, to_country.slug, from_country.pk, to_country.pk, **kwargs)
+                        _send_in_queue.delay(from_country.code, to_country.code, from_country.pk, to_country.pk, **kwargs)
                     else:
-                        _send_in_queue(from_country.slug, to_country.slug, from_country.pk, to_country.pk, **kwargs)
+                        _send_in_queue(from_country.code, to_country.code, from_country.pk, to_country.pk, **kwargs)
 
                 from_country.is_running = False
                 from_country.save(update_fields=['is_running'])
@@ -60,54 +61,59 @@ class Command(BaseCommand):
         res = 200
         return res == 200
 
+    def slugify(self, s):
+        s = unidecode.unidecode(s.strip())
+        slug = _SLUGIFY_RE.sub('-', s).strip('-').lower()
+
+        return slug
+
     def fetch_country(self):
-        self._print('Fetch all Country ...')
-        url = 'https://algeria.visahq.co.uk/requirements/United_States/resident-United_Kingdom/'
+        print 'Fetch all Country ...'
+        # url = 'https://algeria.visahq.co.uk/requirements/United_States/resident-United_Kingdom/'
+        url = 'https://www.visahq.com/get_widget.php'
         country_list = VisaHq.fetch_all_country(url)
+
         for country in country_list:
-            visa_country = VisaCountry(name=country.getText(), slug=country['value'].lower())
-            visa_country.save()
+            if country['value'] != "0":
+                name = country.getText()
+                visa_country = VisaCountry(name=name, code=country['value'], slug=self.slugify(name))
+                visa_country.save()
 
-    def init_logger(self):
-        log_file = '/var/tmp/run_crawlingvisa.log'
-        print 'Writing log into file %s ...' % log_file
-        self.logger = logging.getLogger('crwalingvisa')
-
-        hdlr = logging.FileHandler(log_file)
-        formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-        hdlr.setFormatter(formatter)
-
-        self.logger.addHandler(hdlr) 
-        self.logger.setLevel(logging.WARNING)
-
-    def _print(self, s):
-        if self.using_log:
-            self.logger.info(s)
-        else:
-            print s.encode('utf-8')
+# def init_logger():
+#     log_file = '/var/tmp/run_crawlingvisa.log'
+#     print 'Writing log into file %s ...' % log_file
+#     _logger = logging.getLogger('crwalingvisa')
+#
+#     hdlr = logging.FileHandler(log_file)
+#     formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+#     hdlr.setFormatter(formatter)
+#
+#     _logger.addHandler(hdlr)
+#     _logger.setLevel(logging.WARNING)
 
 
 @task
 def _send_in_queue(from_name, to_name, from_id, to_id, **param):
 
     BASE_DOMAIN = 'https://%s.visahq.com/requirements/%s/resident-%s/'
-
-    base_url = BASE_DOMAIN % (to_name, from_name, from_name)
-    business_url = base_url + '#!%s-business-visa' % to_name
+    BASE_WIDGET = 'https://www.visahq.com/widget_6.php?citizen=%s&dest=%s&lang=us&resid=US&type=flash_java&view=Flash&pln=&is_click=1&visa_type=%s'
+    # base_url = BASE_DOMAIN % (to_name, from_name, from_name)
+    # business_url = base_url + '#!%s-business-visa' % to_name
+    base_url = BASE_WIDGET % (from_name, to_name, 'tourist')
+    business_url = BASE_WIDGET % (from_name, to_name, 'business')
 
     print 'Crawling data from %s to %s' % (from_name, to_name)
-
     visa_information = VisaHq.fetch_all_visa_information(base_url, business_url)
+
     if visa_information:
         tourist_visa = visa_information['tourist_visa']
         business_visa = visa_information['business_visa']
-        details_tourist = visa_information['details_tourist']
-        details_business = visa_information['details_business']
+        # details_tourist = visa_information['details_tourist']
+        # details_business = visa_information['details_business']
 
         visa_info = VisaInformation.objects.create(
-            from_country_id=from_id, to_country_id=to_id, tourist_visa=tourist_visa,
-            business_visa=business_visa, details_tourist=details_tourist,
-            details_business=details_business
+            from_country_id=from_id, to_country_id=to_id,
+            tourist_visa=tourist_visa, business_visa=business_visa
         )
         try:
             visa_info.full_clean()
@@ -124,7 +130,6 @@ def _send_in_queue(from_name, to_name, from_id, to_id, **param):
             if from_country.is_completed():
                 from_country.is_running = False
                 from_country.save(update_fields=['is_running'])
-
 
         _logger.info('SUCCESS Crawling data from %s to %s' % (from_id, to_id))
     else:
