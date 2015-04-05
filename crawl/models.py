@@ -5,7 +5,7 @@ from django.forms import model_to_dict
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.contrib.contenttypes import generic
 from django.contrib.contenttypes.models import ContentType
-from .fields import JSONField
+from .fields import JSONField, HTMLField
 
 
 class ApiModel(object):
@@ -114,7 +114,6 @@ class CrawlDetail(BaseModel):
     CRAWL_CHOICES = (
         (MONTH_WEATHER_INFO,     _("Month weather info")),
         (MONTH_ALMANAC_INFO,     _("Month almanac info")),
-
     )
 
     content_type    = models.ForeignKey(ContentType, on_delete=models.PROTECT, db_index=False, related_name="+")
@@ -127,3 +126,71 @@ class CrawlDetail(BaseModel):
         unique_together = (
             ("object_id", "content_type", "data_type_name"),
         )
+
+class VisaCountry(BaseModel):
+
+    name            = TrimmedCharField(max_length=50)
+    slug            = TrimmedCharField(max_length=50, unique=True, editable=False)
+    stop_at         = models.CharField(max_length=10, default=0)
+    is_running      = models.BooleanField(default=False)
+    total_completed = models.IntegerField(default=0)
+
+    def calculate_percentage(self):
+        num_total = VisaCountry.objects.all().count() - 1
+        num_completed = VisaInformation.objects.filter(from_country_id=self.pk).count()
+
+        self.total_completed = num_completed
+        self.save(update_fields=['total_completed'])
+
+        if num_total:
+            return num_completed / num_total
+        else:
+            return 0.0
+
+    def get_remained_to_country(self):
+        to_country_list = VisaInformation.objects.filter(from_country_id=self.pk).values_list('to_country_id', flat=True)
+
+        if not self.stop_at:
+            self.stop_at = 0.0
+        if to_country_list:
+            remained_country = VisaCountry.objects.filter(id__gte=self.stop_at).exclude(id=self.pk, id__in=to_country_list)
+        else:
+            remained_country = VisaCountry.objects.filter(id__gte=self.stop_at).exclude(id=self.pk)
+        return remained_country
+
+    def refresh(self):
+        self.calculate_percentage()
+
+    def is_completed(self):
+        num_total = VisaCountry.objects.all().count() - 1
+        return self.total_completed >= num_total
+
+    def save(self, *args, **kwargs):
+        update_fields = kwargs.get('update_fields')
+        # is_new = not save.id
+        ins = super(VisaCountry, self).save(*args, **kwargs)
+
+        if not update_fields or 'total_completed' not in update_fields:
+            self.refresh()
+
+        return ins
+
+    def __unicode__(self):
+        return self.name
+
+class VisaInformation(BaseModel):
+
+    from_country             = models.ForeignKey(VisaCountry, on_delete=models.PROTECT, db_index=False, related_name="+")
+    to_country               = models.ForeignKey(VisaCountry, on_delete=models.PROTECT, db_index=False, related_name="visa_free")
+    tourist_visa        = models.BooleanField(default=False)
+    business_visa       = models.BooleanField(default=False)
+    details_tourist     = HTMLField()
+    details_business    = HTMLField()
+
+    class Meta:
+        unique_together = (
+            ("from_country", "to_country")
+        )
+
+    def __unicode__(self):
+        return 'From %s to %s' % (self.from_country.name,  self.to_country.name)
