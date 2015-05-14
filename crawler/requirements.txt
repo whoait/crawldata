@@ -1,0 +1,9 @@
+BeautifulSoup==3.2.1
+PyYAML==3.11
+argparse==1.2.1
+mechanize==0.2.5
+nltk==2.0.4
+pymongo==2.7.1
+requests==2.4.3
+selenium==2.43.0
+wsgiref==0.1.2
