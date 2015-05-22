@@ -9,37 +9,51 @@ from tripadvisorbot.items import *
 from tripadvisorbot.spiders.crawlerhelper import *
 
 
-class TripAdvisorRestaurantBaseSpider(BaseSpider):
-	name = "tripadvisor-restaurant"
+class TripAdvisorAttractionBaseSpider(BaseSpider):
+	name = "tripadvisor-attraction"
 
 	allowed_domains = ["tripadvisor.com"]
 	base_uri = "http://www.tripadvisor.com"
 	start_urls = [
-		base_uri + "/Restaurants-g298082-Hoi_An_Quang_Nam_Province.html"
+		base_uri + "/Attractions-g298082-Activities-c26-Hoi_An_Quang_Nam_Province.html#TtD",
+		base_uri + "/Attractions-g298082-Activities-c42-Hoi_An_Quang_Nam_Province.html#TtD",
+		base_uri + "/Attractions-g298082-Activities-c47-Hoi_An_Quang_Nam_Province.html#TtD",
+		base_uri + "/Attractions-g298082-Activities-c61-Hoi_An_Quang_Nam_Province.html#TtD",
+		base_uri + "/Attractions-g298082-Activities-c41-Hoi_An_Quang_Nam_Province.html#TtD",
+		base_uri + "/Attractions-g298082-Activities-c36-Hoi_An_Quang_Nam_Province.html#TtD",
+		base_uri + "/Attractions-g298082-Activities-c57-Hoi_An_Quang_Nam_Province.html#TtD",
+		base_uri + "/Attractions-g298082-Activities-c40-Hoi_An_Quang_Nam_Province.html#TtD",
+		base_uri + "/Attractions-g298082-Activities-c55-Hoi_An_Quang_Nam_Province.html#TtD",
+		base_uri + "/Attractions-g298082-Activities-c49-Hoi_An_Quang_Nam_Province.html#TtD",
+		base_uri + "/Attractions-g298082-Activities-c20-Hoi_An_Quang_Nam_Province.html#TtD",
+		base_uri + "/Attractions-g298082-Activities-c56-Hoi_An_Quang_Nam_Province.html#TtD",
+		base_uri + "/Attractions-g298082-Activities-c58-Hoi_An_Quang_Nam_Province.html#TtD",
 	]
 
 	def parse(self, response):
 		tripadvisor_items = []
 
 		sel = Selector(response)
-		snode_restaurants = sel.xpath('//div[@id="EATERY_SEARCH_RESULTS"]/div[starts-with(@class, "listing")]')
+		snode_restaurants = sel.xpath('//div[@id="FILTERED_LIST"]/div/div[starts-with(@class, "element_wrap")]/div[starts-with(@class, "wrap al_border")]')
+
+		# print snode_restaurants
 
 		# Build item index.
 		for snode_restaurant in snode_restaurants:
 
 			tripadvisor_item = TripAdvisorItem()
 
-			tripadvisor_item['url'] = url = self.base_uri + clean_parsed_string(get_parsed_string(snode_restaurant, 'div[@class="quality easyClear"]/span/a[@class="property_title "]/@href'))
+			tripadvisor_item['url'] = url = self.base_uri + clean_parsed_string(get_parsed_string(snode_restaurant, 'div[starts-with(@class, "entry ")]/div[@class="property_title"]/a/@href'))
 			business_id = re.search(r'[\-d]+[0-9]+[\-]', url).group(0).replace('-', '')
 			tripadvisor_item['business_id'] = business_id
 			# print url
-			tripadvisor_item['name'] = name = clean_parsed_string(get_parsed_string(snode_restaurant, 'div[@class="quality easyClear"]/span/a[@class="property_title "]/text()'))
+			tripadvisor_item['name'] = name = clean_parsed_string(get_parsed_string(snode_restaurant, 'div[starts-with(@class, "entry ")]/div[@class="property_title"]/a/text()'))
 			yield Request(url=tripadvisor_item['url'], meta={'tripadvisor_item': tripadvisor_item}, callback=self.parse_search_page)
 
 			tripadvisor_items.append(tripadvisor_item)
 
 		print 'get next page'
-		next_page_url = clean_parsed_string(get_parsed_string(sel, '//a[starts-with(@class, "nav next rndBtn rndBtnGreen ")]/@href'))
+		next_page_url = clean_parsed_string(get_parsed_string(sel, '//a[starts-with(@class, "guiArw sprite-pageNext ")]/@href'))
 
 		print next_page_url
 

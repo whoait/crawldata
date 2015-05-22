@@ -4,11 +4,13 @@ from scrapy.item import Item, Field
 class TripAdvisorItem(Item):
 
 	url = Field()
+	business_id = Field()
 	name = Field()
-	address = Field()
-	avg_stars = Field()
-	photos = Field()
-	reviews = Field()
+	country = Field()
+	street = Field()
+	postal_code = Field()
+	phone = Field()
+	email = Field()
 
 class TripAdvisorAddressItem(Item):
 
