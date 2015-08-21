@@ -11,6 +11,8 @@ class TripAdvisorItem(Item):
 	postal_code = Field()
 	phone = Field()
 	email = Field()
+	category = Field()
+	city = Field()
 
 class TripAdvisorAddressItem(Item):
 
